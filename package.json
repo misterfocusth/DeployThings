@@ -7,10 +7,16 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "turbo": "^2.0.9"
   },
-  "packageManager": "pnpm@8.15.6",
-  "name": "with-vite"
+  "packageManager": "pnpm@9.1.1",
+  "name": "with-vite",
+  "dependencies": {
+    "@ts-rest/core": "^3.49.0",
+    "@ts-rest/express": "^3.49.0",
+    "zod": "^3.23.8"
+  }
 }

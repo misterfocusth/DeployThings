@@ -1,10 +1,9 @@
 {
-  "name": "@repo/ui",
+  "name": "@repo/contracts",
   "version": "0.0.0",
   "exports": {
-    "./counter": "./components/counter.ts",
-    "./header": "./components/header.ts",
-    "./setup-counter": "./utils/counter.ts"
+    "./setup-counter": "./utils/counter.ts",
+    ".": "./index.ts"
   },
   "license": "MIT",
   "scripts": {
