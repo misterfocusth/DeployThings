@@ -1,30 +1,27 @@
 import { initServer, type AppRouteImplementation } from "@ts-rest/express";
 
 // Contracts
-import { PostContract } from "@repo/contracts";
+import { contract } from "@repo/contracts";
 
 const s = initServer();
 
-const getPost: AppRouteImplementation<typeof PostContract.getPost> = async ({ params: { id } }) => {
+const getPost: AppRouteImplementation<typeof contract.getPost> = async ({ params: { id } }) => {
   return {
     status: 200,
     body: "Sample Post Ja: " + id,
   };
 };
 
-const createPost: AppRouteImplementation<typeof PostContract.createPost> = async ({ body }) => {
+const createPost: AppRouteImplementation<typeof contract.createPost> = async ({ body }) => {
   return {
     status: 201,
     body: { ...body, id: "123" },
   };
 };
 
-const postRouter = s.router(PostContract, {
+const postRouter = s.router(contract, {
   getPost,
   createPost,
 });
 
-export default {
-  contract: PostContract,
-  router: postRouter,
-};
+export default postRouter;
