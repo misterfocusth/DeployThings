@@ -8,6 +8,5 @@ import { PostContract } from "./routes/post";
 const c = initContract();
 
 export const contract = c.router({
-  createPost: PostContract.createPost,
-  getPost: PostContract.getPost,
+  post: PostContract,
 });

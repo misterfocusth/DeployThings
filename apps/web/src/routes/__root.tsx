@@ -9,7 +9,7 @@ export const Route = createRootRoute({
 });
 
 const Root: FC = () => {
-  const { data, isPending } = api.getPost.useQuery({
+  const { data, isPending } = api.post.getPost.useQuery({
     queryData: {
       params: {
         id: "1",

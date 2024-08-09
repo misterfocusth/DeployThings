@@ -5,14 +5,16 @@ import { contract } from "@repo/contracts";
 
 const s = initServer();
 
-const getPost: AppRouteImplementation<typeof contract.getPost> = async ({ params: { id } }) => {
+const getPost: AppRouteImplementation<typeof contract.post.getPost> = async ({
+  params: { id },
+}) => {
   return {
     status: 200,
     body: "Sample Post Ja: " + id,
   };
 };
 
-const createPost: AppRouteImplementation<typeof contract.createPost> = async ({ body }) => {
+const createPost: AppRouteImplementation<typeof contract.post.createPost> = async ({ body }) => {
   return {
     status: 201,
     body: { ...body, id: "123" },
@@ -20,8 +22,10 @@ const createPost: AppRouteImplementation<typeof contract.createPost> = async ({ 
 };
 
 const postRouter = s.router(contract, {
-  getPost,
-  createPost,
+  post: {
+    getPost,
+    createPost,
+  },
 });
 
 export default postRouter;
