@@ -1,4 +1,12 @@
-export { PostSchema, PostContract } from "./post";
+// contract.ts
 
-// Testing
-export const testing = "TEST TWO JA";
+import { initContract } from "@ts-rest/core";
+
+// Routes
+import { PostContract } from "./routes/post";
+
+const c = initContract();
+
+export const contract = c.router({
+  post: PostContract,
+});
