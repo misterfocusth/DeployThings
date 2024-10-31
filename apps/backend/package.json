@@ -24,6 +24,8 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@aws-sdk/client-ecr": "^3.682.0",
+    "@aws-sdk/types": "^3.679.0",
     "@repo/contracts": "workspace:*",
     "cors": "^2.8.5",
     "express": "^4.19.2"
