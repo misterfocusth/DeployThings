@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,128 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @unique @default(cuid())
+  email                String   @unique
+  name                 String
+  profileImageSrc      String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  dockerHubAccessToken String?
+  awsEcrUri            String?
+
+  OwnedProjects Project[]    @relation("OwnedProjects")
+  Projects      Project[]    @relation("ProjectMembers")
+  UserImages    UserImages[]
+}
+
+model UserImages {
+  id        String   @id @unique @default(cuid())
+  imageName String
+  imageTag  String
+  pushedAt  DateTime
+  size      Float
+  uri       String
+  digest    String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, imageName, imageTag], name: "unique_image")
+}
+
+model Project {
+  id          String  @id @unique @default(cuid())
+  name        String
+  description String?
+
+  owner   User   @relation(fields: [ownerId], references: [id], name: "OwnedProjects")
+  ownerId String
+
+  members User[] @relation("ProjectMembers")
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  ProjectCost ProjectCost[]
+}
+
+model ProjectCost {
+  id        String   @id @unique @default(cuid())
+  cost      Float
+  dueDate   DateTime
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId String
+}
+
+model Service {
+  id               String @id @unique @default(cuid())
+  name             String
+  imageRegistryUrl String
+
+  publicIP   String
+  publicPort Int
+
+  ServiceCredential          ServiceCredential[]
+  ServiceEnvironmentVariable ServiceEnvironmentVariable[]
+
+  ServiceConfiguration   ServiceConfiguration @relation(fields: [serviceConfigurationId], references: [id])
+  serviceConfigurationId String               @unique
+
+  @@unique([publicIP, publicPort], name: "unique_public_ip_port")
+  @@index([name])
+}
+
+model ServiceEnvironmentVariable {
+  id        String   @id @unique @default(cuid())
+  key       String
+  value     String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  serviceId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, key], name: "unique_service_key")
+}
+
+model ServiceCredential {
+  id        String   @id @unique @default(cuid())
+  key       String
+  value     String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  serviceId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, key], name: "unique_service_key")
+}
+
+model ServiceConfiguration {
+  id                String          @id @unique @default(cuid())
+  ComputingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
+  StorageOption     StorageOption?  @relation(fields: [storageOptionId], references: [id])
+  computingOptionId String
+  storageOptionId   String?
+  Service           Service?
+}
+
+model ComputingOption {
+  id                   String                 @id @unique @default(cuid())
+  name                 String
+  availableCPU         Float // Store as number of cores
+  availableMemory      Float // Store as MB of memory
+  costPerHour          Float // Store as Baht per hour
+  ServiceConfiguration ServiceConfiguration[]
+}
+
+model StorageOption {
+  id                   String                 @id @unique @default(cuid())
+  name                 String
+  storageSize          Float // Store as GB
+  costPerHour          Float // Store as Baht per hour
+  ServiceConfiguration ServiceConfiguration[]
 }
