@@ -15,14 +15,14 @@ model User {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   dockerHubAccessToken String?
-  awsEcrUri            String?
 
-  OwnedProjects Project[]    @relation("OwnedProjects")
-  Projects      Project[]    @relation("ProjectMembers")
-  UserImages    UserImages[]
+  ownedProjects Project[]   @relation("OwnedProjects")
+  projects      Project[]   @relation("ProjectMembers")
+  userImages    UserImage[]
+  repository    Repository?
 }
 
-model UserImages {
+model UserImage {
   id        String   @id @unique @default(cuid())
   imageName String
   imageTag  String
@@ -34,10 +34,24 @@ model UserImages {
   user   User   @relation(fields: [userId], references: [id])
   userId String
 
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repositoryId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, imageName, imageTag], name: "unique_image")
+}
+
+model Repository {
+  id        String      @id @unique @default(cuid())
+  name      String
+  uri       String
+  owner     User        @relation(fields: [ownerId], references: [id])
+  ownerId   String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  userImage UserImage[]
 }
 
 model Project {
@@ -71,10 +85,10 @@ model Service {
   publicIP   String
   publicPort Int
 
-  ServiceCredential          ServiceCredential[]
-  ServiceEnvironmentVariable ServiceEnvironmentVariable[]
+  serviceCredential          ServiceCredential[]
+  serviceEnvironmentVariable ServiceEnvironmentVariable[]
 
-  ServiceConfiguration   ServiceConfiguration @relation(fields: [serviceConfigurationId], references: [id])
+  serviceConfiguration   ServiceConfiguration @relation(fields: [serviceConfigurationId], references: [id])
   serviceConfigurationId String               @unique
 
   @@unique([publicIP, publicPort], name: "unique_public_ip_port")
@@ -107,11 +121,11 @@ model ServiceCredential {
 
 model ServiceConfiguration {
   id                String          @id @unique @default(cuid())
-  ComputingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
-  StorageOption     StorageOption?  @relation(fields: [storageOptionId], references: [id])
+  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
+  storageOption     StorageOption?  @relation(fields: [storageOptionId], references: [id])
   computingOptionId String
   storageOptionId   String?
-  Service           Service?
+  service           Service?
 }
 
 model ComputingOption {
@@ -120,7 +134,7 @@ model ComputingOption {
   availableCPU         Float // Store as number of cores
   availableMemory      Float // Store as MB of memory
   costPerHour          Float // Store as Baht per hour
-  ServiceConfiguration ServiceConfiguration[]
+  serviceConfiguration ServiceConfiguration[]
 }
 
 model StorageOption {
@@ -128,5 +142,5 @@ model StorageOption {
   name                 String
   storageSize          Float // Store as GB
   costPerHour          Float // Store as Baht per hour
-  ServiceConfiguration ServiceConfiguration[]
+  serviceConfiguration ServiceConfiguration[]
 }
