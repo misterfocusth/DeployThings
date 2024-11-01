@@ -1,13 +1,14 @@
 import "../../../loadEnv";
 
-import { createExpressEndpoints } from "@ts-rest/express";
+import {createExpressEndpoints, initServer} from "@ts-rest/express";
 
 // Router
-import postImpl from "./routes/postImpl";
+import {createPost, getPost} from "./routes/postImpl";
 
-import express, { Express } from "express";
+import express, {Express} from "express";
 import cors from "cors";
-import { contract } from "@repo/contracts";
+import {contract} from "@repo/contracts";
+import {createRepository, listRepositories} from "./routes/repositoryImpl";
 
 export const app: Express = express();
 
@@ -15,8 +16,21 @@ app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+const s = initServer();
+
+const router = s.router(contract, {
+    post: {
+        getPost: getPost,
+        createPost: createPost,
+    },
+    repository: {
+        listRepositories: listRepositories,
+        createRepository: createRepository,
+    }
+})
+
 // Create Express Endpoints
-createExpressEndpoints(contract, postImpl, app);
+createExpressEndpoints(contract, router, app);
 
 const port = process.env.BACKEND_PORT || 3000;
 
