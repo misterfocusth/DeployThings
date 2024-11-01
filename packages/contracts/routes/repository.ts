@@ -5,7 +5,7 @@ import {userSchema} from "../schemas/user";
 
 const c = initContract();
 
-const repositorySchema = baseSchema.extend({
+export const repositorySchema = baseSchema.extend({
     id: z.string(),
     name: z.string(),
     uri: z.string(),

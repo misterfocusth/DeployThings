@@ -16,10 +16,10 @@ model User {
   updatedAt            DateTime @updatedAt
   dockerHubAccessToken String?
 
-  ownedProjects Project[]   @relation("OwnedProjects")
-  projects      Project[]   @relation("ProjectMembers")
+  ownedProjects Project[]    @relation("OwnedProjects")
+  projects      Project[]    @relation("ProjectMembers")
   userImages    UserImage[]
-  repository    Repository?
+  repository    Repository[]
 }
 
 model UserImage {
@@ -28,14 +28,13 @@ model UserImage {
   imageTag  String
   pushedAt  DateTime
   size      Float
-  uri       String
   digest    String
 
   user   User   @relation(fields: [userId], references: [id])
   userId String
 
   repository   Repository @relation(fields: [repositoryId], references: [id])
-  repositoryId String
+  repositoryId String     @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -44,14 +43,14 @@ model UserImage {
 }
 
 model Repository {
-  id        String      @id @unique @default(cuid())
+  id        String     @id @unique @default(cuid())
   name      String
   uri       String
-  owner     User        @relation(fields: [ownerId], references: [id])
-  ownerId   String      @unique
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  userImage UserImage[]
+  owner     User       @relation(fields: [ownerId], references: [id])
+  ownerId   String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userImage UserImage?
 }
 
 model Project {
