@@ -34,8 +34,7 @@ export const listRepositories: AppRouteImplementation<typeof contract.repository
 };
 
 export const createRepository: AppRouteImplementation<typeof contract.repository.createRepository> = async ({body}) => {
-    const ercRepository = await createECRRepository(body.name);
-    console.log(ercRepository);
+    const ercRepository = await createECRRepository(body.name, '');
 
     if (!ercRepository.repository || !ercRepository.repository.repositoryUri) {
         return {
