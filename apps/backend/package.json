@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon - exec 'tsx' src/index.ts",
-    "seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:push:reset": "prisma db push --force-reset",
+    "db:push": "prisma db push"
   },
   "keywords": [],
   "author": "",

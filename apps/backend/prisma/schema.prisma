@@ -20,6 +20,7 @@ model User {
   projects      Project[]    @relation("ProjectMembers")
   userImages    UserImage[]
   repository    Repository[]
+  cluster Cluster?
 }
 
 model UserImage {
@@ -36,8 +37,9 @@ model UserImage {
   repository   Repository @relation(fields: [repositoryId], references: [id])
   repositoryId String     @unique
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  TaskDefinition TaskDefinition[]
 
   @@unique([userId, imageName, imageTag], name: "unique_image")
 }
@@ -63,17 +65,8 @@ model Project {
 
   members User[] @relation("ProjectMembers")
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  ProjectCost ProjectCost[]
-}
-
-model ProjectCost {
-  id        String   @id @unique @default(cuid())
-  cost      Float
-  dueDate   DateTime
-  project   Project  @relation(fields: [projectId], references: [id])
-  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Service {
@@ -84,62 +77,115 @@ model Service {
   publicIP   String
   publicPort Int
 
-  serviceCredential          ServiceCredential[]
-  serviceEnvironmentVariable ServiceEnvironmentVariable[]
+  providerBase   Int @default(0)
+  providerWeight Int @default(1)
 
-  serviceConfiguration   ServiceConfiguration @relation(fields: [serviceConfigurationId], references: [id])
-  serviceConfigurationId String               @unique
+  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
+  computingOptionId String
 
   @@unique([publicIP, publicPort], name: "unique_public_ip_port")
   @@index([name])
 }
 
-model ServiceEnvironmentVariable {
-  id        String   @id @unique @default(cuid())
-  key       String
-  value     String
-  service   Service  @relation(fields: [serviceId], references: [id])
-  serviceId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model TaskDefinition {
+  id              String             @id @unique @default(cuid())
+  name            String
+  launchType      InfrastructureType
+  operatingSystem OperatingSystem
 
-  @@unique([serviceId, key], name: "unique_service_key")
+  containerName String
+
+  containerPort         Int
+  containerPortProtocol ContainerPortProtocol @default(TCP)
+  exposedPort           Int
+  exposedPortProtocol   ExposePortProtocol    @default(HTTP)
+
+  userImage   UserImage @relation(fields: [userImageId], references: [id])
+  userImageId String
+
+  storageOption   StorageOption @relation(fields: [storageOptionId], references: [id])
+  storageOptionId String
+
+  TaskEnvironmentVariable TaskEnvironmentVariable[]
+  TaskCredential          TaskCredential[]
 }
 
-model ServiceCredential {
-  id        String   @id @unique @default(cuid())
-  key       String
-  value     String
-  service   Service  @relation(fields: [serviceId], references: [id])
-  serviceId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model TaskEnvironmentVariable {
+  id               String         @id @unique @default(cuid())
+  key              String
+  value            String
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  @@unique([serviceId, key], name: "unique_service_key")
+  @@unique([taskDefinitionId, key], name: "unique_task_key")
 }
 
-model ServiceConfiguration {
-  id                String          @id @unique @default(cuid())
-  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
-  storageOption     StorageOption?  @relation(fields: [storageOptionId], references: [id])
-  computingOptionId String
-  storageOptionId   String?
-  service           Service?
+model TaskCredential {
+  id               String         @id @unique @default(cuid())
+  key              String
+  value            String
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([taskDefinitionId, key], name: "unique_task_key")
 }
 
 model ComputingOption {
-  id                   String                 @id @unique @default(cuid())
-  name                 String
-  availableCPU         Float // Store as number of cores
-  availableMemory      Float // Store as MB of memory
-  costPerHour          Float // Store as Baht per hour
-  serviceConfiguration ServiceConfiguration[]
+  id              String   @id @unique @default(cuid())
+  name            String
+  availableCPU    Float // Store as number of cores
+  availableMemory Float // Store as GB of memory
+  costPerHour     Float // Store as Baht per hour
+  services        Service[]
 }
 
 model StorageOption {
-  id                   String                 @id @unique @default(cuid())
-  name                 String
-  storageSize          Float // Store as GB
-  costPerHour          Float // Store as Baht per hour
-  serviceConfiguration ServiceConfiguration[]
+  id              String           @id @unique @default(cuid())
+  name            String
+  storageSize     Float // Store as GB
+  costPerHour     Float // Store as Baht per hour
+  taskDefinitions TaskDefinition[]
+}
+
+model Cluster {
+  id             String             @id @unique @default(cuid())
+  name           String
+  namespace      String
+  infrastructure InfrastructureType
+
+  ownerId String @unique
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum InfrastructureType {
+  FARGATE
+  EC2
+}
+
+enum OperatingSystem {
+  LINUX_X86_64
+  LINUX_ARM64
+  WINDOWS_SERVER_2019_CORE
+  WINDOWS_SERVER_2019_FULL
+  WINDOWS_SERVER_2022_CORE
+  WINDOWS_SERVER_2022_FULL
+}
+
+enum ContainerPortProtocol {
+  TCP
+  UDP
+}
+
+enum ExposePortProtocol {
+  HTTP
+  HTTP2
+  GRPC
+  NONE
 }

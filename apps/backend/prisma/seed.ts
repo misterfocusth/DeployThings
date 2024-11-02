@@ -4,14 +4,14 @@ const initialComputeOptions = [
     {
         id: "1",
         name: 'General Purpose',
-        availableCPU: 2,
-        availableMemory: 4,
+        availableCPU: 1,
+        availableMemory: 2,
         costPerHour: 3
     },
     {
         id: "2",
         name: 'Memory Optimized',
-        availableCPU: 1,
+        availableCPU: 2,
         availableMemory: 8,
         costPerHour: 6
     },
@@ -19,21 +19,14 @@ const initialComputeOptions = [
         id: "3",
         name: 'CPU Optimized',
         availableCPU: 4,
-        availableMemory: 2,
+        availableMemory: 8,
         costPerHour: 5
     },
     {
         id: "4",
-        name: 'GPU Optimized',
-        availableCPU: 2,
-        availableMemory: 4,
-        costPerHour: 10
-    },
-    {
-        id: "5",
-        name: 'Storage Optimized',
-        availableCPU: 2,
-        availableMemory: 4,
+        name: 'Compute Accelerated',
+        availableCPU: 8,
+        availableMemory: 16,
         costPerHour: 4
     }
 ]
@@ -59,31 +52,43 @@ const initialStorageOptions = [
     },
     {
         id: "4",
-        name: 'HDD v1',
-        storageSize: 32,
-        costPerHour: 0.5
+        name: 'SSD v4',
+        storageSize: 512,
+        costPerHour: 8
     },
-    {
-        id: "5",
-        name: 'HDD v2',
-        storageSize: 64,
-        costPerHour: 1
-    },
-    {
-        id: "6",
-        name: 'HDD v3',
-        storageSize: 128,
-        costPerHour: 2
-    },
-    {
-        id: "7",
-        name: 'HDD v4',
-        storageSize: 256,
-        costPerHour: 4
-    }
 ]
 
 const main = async () => {
+    await prisma.user.upsert({
+        where: {
+            id: '1'
+        },
+        update: {},
+        create: {
+            id: '1',
+            email: '65070219@kmitl.ac.th',
+            name: 'Sila Pakdeewong',
+            dockerHubAccessToken: process.env.DOCKER_HUB_ACCESS_TOKEN,
+        }
+    })
+
+    await prisma.project.upsert({
+        where: {
+            id: '1'
+        },
+        update: {},
+        create: {
+            id: '1',
+            name: 'Main Project',
+            description: 'Main project for testing',
+            owner: {
+                connect: {
+                    id: '1'
+                }
+            }
+        }
+    })
+
     for (const computeOption of initialComputeOptions) {
         await prisma.computingOption.upsert({
             where: {
