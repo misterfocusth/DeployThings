@@ -2,7 +2,7 @@ import {type AppRouteImplementation} from "@ts-rest/express";
 
 // Contracts
 import {contract} from "@repo/contracts";
-import {createECRRepository, listECRRepositories} from "../libs/aws/ecr";
+import {createECRRepository, deleteECRRepository, listECRRepositories} from "../libs/aws/ecr";
 import prisma from "../libs/db";
 
 export const listRepositories: AppRouteImplementation<typeof contract.repository.listRepositories> = async () => {
@@ -61,3 +61,52 @@ export const createRepository: AppRouteImplementation<typeof contract.repository
         body: repository
     }
 };
+
+export const deleteRepository: AppRouteImplementation<typeof contract.repository.deleteRepository> = async ({params}) => {
+    const repository = await prisma.repository.findUnique({
+        where: {
+            id: params.id
+        }
+    });
+
+    if (!repository) {
+        return {
+            status: 404,
+            body: {
+                error: "Repository not found"
+            }
+        }
+    }
+
+    try {
+        await deleteECRRepository({repositoryName: repository.name});
+
+        const deleteUserImage = prisma.userImage.deleteMany({
+            where: {
+                repositoryId: params.id
+            }
+        });
+
+
+        const deleteRepository = prisma.repository.delete({
+            where: {
+                id: params.id
+            }
+        });
+
+        await prisma.$transaction([deleteUserImage, deleteRepository])
+
+        return {
+            status: 204,
+            body: null
+        }
+    } catch (error) {
+        console.error("Error deleting repository:", error);
+        return {
+            status: 500,
+            body: {
+                error: "Internal server error"
+            }
+        }
+    }
+}

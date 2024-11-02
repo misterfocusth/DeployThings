@@ -1,5 +1,6 @@
 import {
     CreateRepositoryCommand,
+    DeleteRepositoryCommand,
     DescribeImagesCommand,
     DescribeRepositoriesCommand,
     ECRClient,
@@ -104,3 +105,17 @@ export const listECRRepositories = async () => {
         throw error;
     }
 };
+
+export const deleteECRRepository = async ({repositoryName}: { repositoryName: string }) => {
+    const command = new DeleteRepositoryCommand({
+        repositoryName,
+        force: true
+    });
+
+    try {
+        return await client.send(command);
+    } catch (error) {
+        console.error("Error deleting repository:", error);
+        throw error;
+    }
+}

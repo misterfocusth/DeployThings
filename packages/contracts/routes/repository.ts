@@ -39,5 +39,16 @@ export const RepositoryContract = c.router({
             name: z.string()
         }),
         summary: "Create a repository",
+    },
+    deleteRepository: {
+        method: "DELETE",
+        path: "/repositories/:id",
+        responses: {
+            204: c.type<null>(),
+            404: c.type<ErrorResponse>(),
+            500: c.type<ErrorResponse>()
+        },
+        body: z.any().nullable(),
+        summary: "Delete a repository",
     }
 })

@@ -8,7 +8,7 @@ import {createPost, getPost} from "./routes/postImpl";
 import express, {Express} from "express";
 import cors from "cors";
 import {contract} from "@repo/contracts";
-import {createRepository, listRepositories} from "./routes/repositoryImpl";
+import {createRepository, deleteRepository, listRepositories} from "./routes/repositoryImpl";
 import {listImages, listUserImages, pullAndUploadImage} from "./routes/imageImpl";
 
 export const app: Express = express();
@@ -27,6 +27,7 @@ const router = s.router(contract, {
     repository: {
         listRepositories: listRepositories,
         createRepository: createRepository,
+        deleteRepository: deleteRepository
     },
     image: {
         listImages: listImages,
