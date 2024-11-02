@@ -46,7 +46,6 @@ export const listUserImages: AppRouteImplementation<typeof contract.image.listUs
         }
     }
 
-
     return {
         status: 200,
         body: images
@@ -94,13 +93,17 @@ export const pullAndUploadImage: AppRouteImplementation<typeof contract.image.pu
     let imageRepository = await prisma.repository.findFirst({
         where: {
             userImage: {
-                imageName: imageName
+                imageName: imageName,
+                userId: user.id
             }
         }
     })
 
+    console.log('imageRepository', imageRepository)
+
     if (!imageRepository) {
-        const ercRepository = await createECRRepository(user.name, imageName);
+        const username = user.name.split(' ').join('_').toLowerCase();
+        const ercRepository = await createECRRepository(username, imageName);
 
         if (!ercRepository.repository ||
             !ercRepository.repository.repositoryUri ||
@@ -118,16 +121,26 @@ export const pullAndUploadImage: AppRouteImplementation<typeof contract.image.pu
             data: {
                 name: ercRepository.repository.repositoryName,
                 uri: ercRepository.repository.repositoryUri,
-                ownerId: userId
+                owner: {
+                    connect: {
+                        id: userId
+                    }
+                }
             }
         })
     }
 
     const dockerHubAccessToken = user.dockerHubAccessToken;
-    const repositoryUri = imageRepository.uri;
-    const repositoryId = imageRepository.id;
+    const repositoryName = imageRepository.name
+    const repositoryUri = imageRepository.uri
+    const repositoryId = imageRepository.id
 
-    const imageDetails = await uploadImageToECR(imageName, dockerHubAccessToken, repositoryUri);
+    const imageDetails = await uploadImageToECR({
+        imageName,
+        repositoryName,
+        dockerHubAccessToken,
+        repositoryUri
+    });
 
     if (!imageDetails) {
         return {
@@ -140,7 +153,7 @@ export const pullAndUploadImage: AppRouteImplementation<typeof contract.image.pu
 
     const image = await prisma.userImage.create({
         data: {
-            imageName: "",
+            imageName: imageName,
             imageTag: imageDetails.imageTags!.join(','),
             pushedAt: imageDetails.imagePushedAt!,
             size: imageDetails.imageSizeInBytes!,

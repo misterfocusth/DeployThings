@@ -3,8 +3,7 @@ import {
     DescribeImagesCommand,
     DescribeRepositoriesCommand,
     ECRClient,
-    GetAuthorizationTokenCommand,
-    ImageDetail
+    GetAuthorizationTokenCommand
 } from "@aws-sdk/client-ecr";
 import {CONSTANT} from "../../../constant";
 import {getDefaultCredentials} from "./credentials";
@@ -46,9 +45,7 @@ const authenticateECR = async () => {
         const [username, password] = decodedAuth.split(':');
 
         await execAsync(`docker login -u ${username} -p ${password} ${proxyEndpoint}`);
-        console.log('Authenticated with ERC')
     } else {
-        console.error('No authorization data found')
         throw new Error('No authorization data found')
     }
 }
@@ -57,56 +54,46 @@ async function logoutFromECR(repositoryUri: string) {
     await execAsync(`docker logout ${repositoryUri}`);
 }
 
-const getECRImageDetails = async (repositoryName: string, imageName: string) => {
-    let images: ImageDetail[] = [];
-    let nextToken: string | undefined;
-
+const getECRRepositoryDetails = async (repositoryName: string) => {
     try {
-        do {
-            const command = new DescribeImagesCommand({
-                repositoryName,
-                nextToken,
-            });
+        const command = new DescribeImagesCommand({
+            repositoryName,
+            imageIds: [{imageTag: 'latest'}]
+        });
+        const response = await client.send(command);
 
-            const response = await client.send(command);
-
-            if (response.imageDetails) {
-                images = images.concat(response.imageDetails);
-            }
-
-            nextToken = response.nextToken;
-        } while (nextToken);
+        if (response.imageDetails && response.imageDetails.length > 0) {
+            return response.imageDetails[0];
+        } else {
+            return null;
+        }
     } catch (error) {
-        console.error(error)
-        throw error
+        console.error('Error retrieving image details:', error);
+        throw error;
     }
-
-    return images.find((image) => image.imageTags?.includes(imageName));
 }
 
-export const uploadImageToECR = async (imageName: string, dockerHubAccessToken: string, repositoryUri: string) => {
+export const uploadImageToECR = async (config: {
+    imageName: string,
+    repositoryName: string,
+    repositoryUri: string,
+    dockerHubAccessToken?: string
+}) => {
+    const {imageName, repositoryName, repositoryUri, dockerHubAccessToken} = config
+
     await pullImageFromDockerHub(imageName, dockerHubAccessToken)
-
     await authenticateECR()
-
-    console.log('Tag docker image...')
+    
     await execAsync(`docker tag ${imageName}:latest ${repositoryUri}:latest`);
-
-    console.log('Pushing docker image...')
     await execAsync(`docker push ${repositoryUri}:latest`);
 
-    console.log('Logged out from ECR')
     await logoutFromECR(repositoryUri)
 
-    console.log('Image pushed to ECR successfully')
-
-    const imageDetails = await getECRImageDetails('deploythings/65070219', repositoryUri)
+    const imageDetails = await getECRRepositoryDetails(repositoryName)
 
     if (!imageDetails) {
         throw new Error(`Image ${imageName} not found in repository ${repositoryUri}`)
     }
-
-    console.log('Image details:', imageDetails)
 
     return imageDetails
 }
