@@ -151,21 +151,51 @@ export const pullAndUploadImage: AppRouteImplementation<typeof contract.image.pu
         }
     }
 
-    const image = await prisma.userImage.create({
-        data: {
+    let image = await prisma.userImage.findFirst({
+        where: {
             imageName: imageName,
-            imageTag: imageDetails.imageTags!.join(','),
-            pushedAt: imageDetails.imagePushedAt!,
-            size: imageDetails.imageSizeInBytes!,
-            digest: imageDetails.imageDigest!,
             userId: userId,
-            repositoryId: repositoryId
         },
         include: {
             user: true,
             repository: true
         }
     })
+
+    if (image) {
+        image = await prisma.userImage.update({
+            data: {
+                imageName: imageName,
+                imageTag: imageDetails.imageTags!.join(','),
+                pushedAt: imageDetails.imagePushedAt!,
+                size: imageDetails.imageSizeInBytes!,
+                digest: imageDetails.imageDigest!,
+            },
+            where: {
+                id: image.id
+            },
+            include: {
+                user: true,
+                repository: true
+            }
+        })
+    } else {
+        image = await prisma.userImage.create({
+            data: {
+                imageName: imageName,
+                imageTag: imageDetails.imageTags!.join(','),
+                pushedAt: imageDetails.imagePushedAt!,
+                size: imageDetails.imageSizeInBytes!,
+                digest: imageDetails.imageDigest!,
+                userId: userId,
+                repositoryId: repositoryId
+            },
+            include: {
+                user: true,
+                repository: true
+            }
+        })
+    }
 
     return {
         status: 201,

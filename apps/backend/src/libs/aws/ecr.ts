@@ -78,6 +78,9 @@ export const uploadImageToECR = async (
 
         await execAsync(`docker tag ${imageName}:latest ${repositoryUri}:latest`);
         await execAsync(`docker push ${repositoryUri}:latest`);
+    } catch (error) {
+        console.error("Error uploading image to ECR:", error);
+        throw error;
     } finally {
         await logoutFromECR(repositoryUri);
     }
