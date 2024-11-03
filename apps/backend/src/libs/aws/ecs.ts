@@ -1,6 +1,7 @@
 import {
   DeregisterTaskDefinitionCommand,
   ECSClient,
+  ListTaskDefinitionsCommand,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
 } from "@aws-sdk/client-ecs";
@@ -23,14 +24,29 @@ export const createECSTaskDefinition = async (
   }
 };
 
-export const deleteECSTaskDefinition = async (taskDefinitionArn: string) => {
-  const command = new DeregisterTaskDefinitionCommand({ taskDefinition: taskDefinitionArn });
-
+export const deleteECSTaskDefinition = async (taskDefinitionFamilyName: string) => {
   try {
-    return await ecsClient.send(command);
+    const listAllTasksCommand = new ListTaskDefinitionsCommand({
+      familyPrefix: taskDefinitionFamilyName,
+      sort: "DESC",
+    });
+
+    const taskDefinitions = await ecsClient.send(listAllTasksCommand);
+    const taskDefinitionArns = taskDefinitions.taskDefinitionArns;
+
+    if (!taskDefinitionArns || taskDefinitionArns.length === 0) {
+      console.error("No task definition found");
+      return;
+    }
+
+    for (const taskDefinitionArn of taskDefinitionArns) {
+      const deregisterCommand = new DeregisterTaskDefinitionCommand({
+        taskDefinition: taskDefinitionArn,
+      });
+      await ecsClient.send(deregisterCommand);
+    }
   } catch (error) {
     console.error("Error deleting ECS Task Definition", error);
     throw error;
   }
-  return;
 };

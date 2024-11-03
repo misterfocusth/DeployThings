@@ -300,7 +300,7 @@ export const deleteTask: AppRouteImplementation<typeof contract.task.deleteTask>
       };
     }
 
-    await deleteECSTaskDefinition(task.arn);
+    await deleteECSTaskDefinition(task.name);
 
     await prisma.taskDefinition.delete({
       where: {
