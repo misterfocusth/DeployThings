@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ecr": "^3.682.0",
+    "@aws-sdk/client-ecs": "^3.683.0",
     "@aws-sdk/types": "^3.679.0",
     "@prisma/client": "5.18.0",
     "@repo/contracts": "workspace:*",
