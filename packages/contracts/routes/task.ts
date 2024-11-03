@@ -5,7 +5,7 @@ import { imageSchema } from "./image";
 
 const c = initContract();
 
-export const computingOptionSchema = baseSchema.extend({
+export const computingOptionSchema = z.object({
   id: z.string(),
   name: z.string(),
   availableCPU: z.number(),
@@ -13,21 +13,20 @@ export const computingOptionSchema = baseSchema.extend({
   costPerHour: z.number(),
 });
 
-export const storageOptionSchema = baseSchema.extend({
+export const storageOptionSchema = z.object({
   id: z.string(),
   name: z.string(),
   storageSize: z.number(),
   costPerHour: z.number(),
 });
 
-const taskEnvironmentVariableSchema = baseSchema.extend({
+const taskEnvironmentVariableSchema = z.object({
   id: z.string(),
   key: z.string(),
   value: z.string(),
 });
 
 export const taskSchema = baseSchema.extend({
-  id: z.string(),
   name: z.string(),
   arn: z.string(),
   revision: z.number(),
@@ -79,6 +78,8 @@ export const TaskContract = c.router({
       500: c.type<ErrorResponse>(),
     },
     body: z.object({
+      taskName: z.string(),
+      containerName: z.string(),
       userId: z.string(),
       os: z.string(),
       computingOptionId: z.string(),
@@ -106,7 +107,7 @@ export const TaskContract = c.router({
     method: "DELETE",
     path: "/tasks/:id",
     responses: {
-      204: c.type<void>(),
+      204: c.type<null>(),
       404: c.type<ErrorResponse>(),
       500: c.type<ErrorResponse>(),
     },

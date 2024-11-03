@@ -1,4 +1,5 @@
 import {
+  DeregisterTaskDefinitionCommand,
   ECSClient,
   RegisterTaskDefinitionCommand,
   RegisterTaskDefinitionCommandInput,
@@ -20,4 +21,16 @@ export const createECSTaskDefinition = async (
     console.error("Error creating ECS Task Definition", error);
     throw error;
   }
+};
+
+export const deleteECSTaskDefinition = async (taskDefinitionArn: string) => {
+  const command = new DeregisterTaskDefinitionCommand({ taskDefinition: taskDefinitionArn });
+
+  try {
+    return await ecsClient.send(command);
+  } catch (error) {
+    console.error("Error deleting ECS Task Definition", error);
+    throw error;
+  }
+  return;
 };

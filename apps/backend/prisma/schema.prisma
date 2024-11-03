@@ -16,11 +16,12 @@ model User {
   updatedAt            DateTime @updatedAt
   dockerHubAccessToken String?
 
-  ownedProjects Project[]    @relation("OwnedProjects")
-  projects      Project[]    @relation("ProjectMembers")
-  userImages    UserImage[]
-  repository    Repository[]
-  cluster       Cluster?
+  ownedProjects  Project[]        @relation("OwnedProjects")
+  projects       Project[]        @relation("ProjectMembers")
+  userImages     UserImage[]
+  repository     Repository[]
+  cluster        Cluster?
+  taskDefinition TaskDefinition[]
 }
 
 model UserImage {
@@ -80,6 +81,9 @@ model Service {
   providerBase   Int @default(0)
   providerWeight Int @default(1)
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([publicIP, publicPort], name: "unique_public_ip_port")
   @@index([name])
 }
@@ -90,8 +94,8 @@ model TaskDefinition {
   arn      String
   revision Int
 
-  taskRoleArn   String?
-  executionRole String?
+  taskRoleArn      String?
+  executionRoleArn String?
 
   launchType      InfrastructureType @default(FARGATE)
   operatingSystem OperatingSystem
@@ -112,8 +116,14 @@ model TaskDefinition {
   storageOption   StorageOption @relation(fields: [storageOptionId], references: [id])
   storageOptionId String
 
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
   taskEnvironmentVariable TaskEnvironmentVariable[]
   taskCredential          TaskCredential[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TaskEnvironmentVariable {
@@ -173,6 +183,7 @@ model Cluster {
 enum InfrastructureType {
   FARGATE
   EC2
+  EXTERNAL
 }
 
 enum OperatingSystem {

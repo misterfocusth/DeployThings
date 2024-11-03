@@ -1,15 +1,16 @@
 import "../../../loadEnv";
 
-import {createExpressEndpoints, initServer} from "@ts-rest/express";
+import { createExpressEndpoints, initServer } from "@ts-rest/express";
 
 // Router
-import {createPost, getPost} from "./routes/postImpl";
+import { createPost, getPost } from "./routes/postImpl";
 
-import express, {Express} from "express";
+import express, { Express } from "express";
 import cors from "cors";
-import {contract} from "@repo/contracts";
-import {createRepository, deleteRepository, listRepositories} from "./routes/repositoryImpl";
-import {listImages, listUserImages, pullAndUploadImage} from "./routes/imageImpl";
+import { contract } from "@repo/contracts";
+import { createRepository, deleteRepository, listRepositories } from "./routes/repositoryImpl";
+import { listImages, listUserImages, pullAndUploadImage } from "./routes/imageImpl";
+import { createTask, deleteTask, listTasks } from "./routes/taskImpl";
 
 export const app: Express = express();
 
@@ -20,21 +21,26 @@ app.use(express.json());
 const s = initServer();
 
 const router = s.router(contract, {
-    post: {
-        getPost: getPost,
-        createPost: createPost,
-    },
-    repository: {
-        listRepositories: listRepositories,
-        createRepository: createRepository,
-        deleteRepository: deleteRepository
-    },
-    image: {
-        listImages: listImages,
-        listUserImages: listUserImages,
-        pullAndUploadImage: pullAndUploadImage,
-    },
-})
+  post: {
+    getPost: getPost,
+    createPost: createPost,
+  },
+  repository: {
+    listRepositories: listRepositories,
+    createRepository: createRepository,
+    deleteRepository: deleteRepository,
+  },
+  image: {
+    listImages: listImages,
+    listUserImages: listUserImages,
+    pullAndUploadImage: pullAndUploadImage,
+  },
+  task: {
+    listTasks: listTasks,
+    createTask: createTask,
+    deleteTask: deleteTask,
+  },
+});
 
 // Create Express Endpoints
 createExpressEndpoints(contract, router, app);

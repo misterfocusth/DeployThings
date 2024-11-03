@@ -43,8 +43,8 @@ export const getTaskDefinitionJSON = ({
       {
         name: userImage.imageName,
         image: repository.uri,
-        cpu: computingOption.availableCPU,
-        memory: computingOption.availableMemory,
+        cpu: computingOption.availableCPU * 1024,
+        memory: computingOption.availableMemory * 1024,
         essential: true,
         portMappings: [
           {
@@ -66,8 +66,8 @@ export const getTaskDefinitionJSON = ({
       sizeInGiB: storageOption.storageSize,
     },
     requiresCompatibilities: ["FARGATE"],
-    cpu: computingOption.availableCPU + "",
-    memory: computingOption.availableMemory + "",
+    cpu: computingOption.availableCPU * 1024 + "",
+    memory: computingOption.availableMemory * 1024 + "",
   };
 
   return taskDefinitionParams;
