@@ -1,3 +1,3 @@
 export const CONSTANT = {
-    AWS_REGION: "us-east-1",
-}
+  AWS_REGION: "ap-southeast-1",
+};
