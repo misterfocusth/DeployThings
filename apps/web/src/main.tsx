@@ -10,7 +10,7 @@ import { routeTree } from "./routeTree.gen";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 
 // TS-Rest React Query
-import { api } from "./libs/tsr-react-query";
+import { api } from "./lib/tsr-react-query";
 
 const queryClient = new QueryClient();
 

@@ -1,7 +1,7 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { createRootRoute, Link } from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import { api } from "../libs/tsr-react-query";
+import { api } from "../lib/tsr-react-query";
 import { FC } from "react";
 
 export const Route = createRootRoute({
@@ -28,16 +28,18 @@ const Root: FC = () => {
 
   return (
     <>
-      <div className="p-2 flex gap-2">
-        <Link to="/" className="[&.active]:font-bold">
-          Home
-        </Link>{" "}
-        <Link to="/about" className="[&.active]:font-bold">
-          About
-        </Link>
+      <div className=" sticky top-0 bg-white">
+        <div className="p-5 flex gap-5 text-lg">
+          <Link to="/" className="[&.active]:font-bold">
+            Home
+          </Link>{" "}
+          <Link to="/project" className="[&.active]:font-bold">
+            Projects
+          </Link>
+        </div>
+        <hr />
       </div>
-      <hr />
-
+      <Outlet/>
       <ReactQueryDevtools buttonPosition="top-right" />
       <TanStackRouterDevtools position="bottom-right" />
     </>
