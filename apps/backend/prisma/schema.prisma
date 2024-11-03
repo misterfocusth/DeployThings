@@ -20,7 +20,7 @@ model User {
   projects      Project[]    @relation("ProjectMembers")
   userImages    UserImage[]
   repository    Repository[]
-  cluster Cluster?
+  cluster       Cluster?
 }
 
 model UserImage {
@@ -37,8 +37,8 @@ model UserImage {
   repository   Repository @relation(fields: [repositoryId], references: [id])
   repositoryId String     @unique
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   TaskDefinition TaskDefinition[]
 
   @@unique([userId, imageName, imageTag], name: "unique_image")
@@ -80,17 +80,20 @@ model Service {
   providerBase   Int @default(0)
   providerWeight Int @default(1)
 
-  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
-  computingOptionId String
-
   @@unique([publicIP, publicPort], name: "unique_public_ip_port")
   @@index([name])
 }
 
 model TaskDefinition {
-  id              String             @id @unique @default(cuid())
-  name            String
-  launchType      InfrastructureType
+  id       String @id @unique @default(cuid())
+  name     String
+  arn      String
+  revision Int
+
+  taskRoleArn   String?
+  executionRole String?
+
+  launchType      InfrastructureType @default(FARGATE)
   operatingSystem OperatingSystem
 
   containerName String
@@ -103,11 +106,14 @@ model TaskDefinition {
   userImage   UserImage @relation(fields: [userImageId], references: [id])
   userImageId String
 
+  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
+  computingOptionId String
+
   storageOption   StorageOption @relation(fields: [storageOptionId], references: [id])
   storageOptionId String
 
-  TaskEnvironmentVariable TaskEnvironmentVariable[]
-  TaskCredential          TaskCredential[]
+  taskEnvironmentVariable TaskEnvironmentVariable[]
+  taskCredential          TaskCredential[]
 }
 
 model TaskEnvironmentVariable {
@@ -135,12 +141,12 @@ model TaskCredential {
 }
 
 model ComputingOption {
-  id              String   @id @unique @default(cuid())
+  id              String           @id @unique @default(cuid())
   name            String
   availableCPU    Float // Store as number of cores
   availableMemory Float // Store as GB of memory
   costPerHour     Float // Store as Baht per hour
-  services        Service[]
+  taskDefinitions TaskDefinition[]
 }
 
 model StorageOption {
