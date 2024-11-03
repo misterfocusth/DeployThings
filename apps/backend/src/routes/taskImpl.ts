@@ -302,11 +302,19 @@ export const deleteTask: AppRouteImplementation<typeof contract.task.deleteTask>
 
     await deleteECSTaskDefinition(task.name);
 
-    await prisma.taskDefinition.delete({
+    const deleteAllTaskEnvironmentVariables = prisma.taskEnvironmentVariable.deleteMany({
+      where: {
+        taskDefinitionId: id,
+      },
+    });
+
+    const deleteTaskDefinition = prisma.taskDefinition.delete({
       where: {
         id: id,
       },
     });
+
+    await prisma.$transaction([deleteAllTaskEnvironmentVariables, deleteTaskDefinition]);
 
     return {
       status: 204,
