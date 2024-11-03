@@ -71,15 +71,21 @@ model Project {
 }
 
 model Service {
-  id               String @id @unique @default(cuid())
-  name             String
-  imageRegistryUrl String
+  id   String @id @unique @default(cuid())
+  arn  String
+  name String
 
   publicIP   String
   publicPort Int
 
-  providerBase   Int @default(0)
+  providerBase   Int @default(1)
   providerWeight Int @default(1)
+
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+
+  cluster   Cluster @relation(fields: [clusterId], references: [id])
+  clusterId String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,8 +128,9 @@ model TaskDefinition {
   taskEnvironmentVariable TaskEnvironmentVariable[]
   taskCredential          TaskCredential[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Service   Service[]
 }
 
 model TaskEnvironmentVariable {
@@ -169,6 +176,7 @@ model StorageOption {
 
 model Cluster {
   id             String             @id @unique @default(cuid())
+  arn            String
   name           String
   namespace      String
   infrastructure InfrastructureType
@@ -176,8 +184,9 @@ model Cluster {
   ownerId String @unique
   owner   User   @relation(fields: [ownerId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Service   Service[]
 }
 
 enum InfrastructureType {
