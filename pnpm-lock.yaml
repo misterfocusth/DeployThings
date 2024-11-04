@@ -1769,13 +1769,11 @@ packages:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
     engines: {node: '>= 8.10.0'}
 
-<<<<<<< HEAD
-  class-variance-authority@0.7.0:
-    resolution: {integrity: sha512-jFI8IQw4hczaL4ALINxqLEXQbWcNjoSkloa4IaufXCJr6QawJyw7tuRysRsrE8w2p/4gGaxKIt/hX3qz/IbD1A==}
-=======
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
->>>>>>> f54528afa7612814b7dba8387b0c3090310bbb09
+
+  class-variance-authority@0.7.0:
+    resolution: {integrity: sha512-jFI8IQw4hczaL4ALINxqLEXQbWcNjoSkloa4IaufXCJr6QawJyw7tuRysRsrE8w2p/4gGaxKIt/hX3qz/IbD1A==}
 
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
@@ -2005,10 +2003,7 @@ packages:
   eslint@8.57.0:
     resolution: {integrity: sha512-dZ6+mexnaTIbSBZWgou51U6OmzIhYM2VcNdtiTtI7qPNZm35Akpr0f6vtw3w1Kmn5PYo+tZVfh13WrhpS6oLqQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-<<<<<<< HEAD
     deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
-=======
->>>>>>> f54528afa7612814b7dba8387b0c3090310bbb09
     hasBin: true
 
   espree@9.6.1:
@@ -5123,13 +5118,11 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-<<<<<<< HEAD
+  chownr@1.1.4: {}
+
   class-variance-authority@0.7.0:
     dependencies:
       clsx: 2.0.0
-=======
-  chownr@1.1.4: {}
->>>>>>> f54528afa7612814b7dba8387b0c3090310bbb09
 
   cliui@8.0.1:
     dependencies:
