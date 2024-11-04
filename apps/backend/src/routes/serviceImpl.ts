@@ -277,13 +277,23 @@ export const deleteService: AppRouteImplementation<typeof contract.service.delet
       },
     });
 
+    const deleteTaskEnvironmentVariables = prisma.taskEnvironmentVariable.deleteMany({
+      where: {
+        taskDefinitionId: taskDefinition.id,
+      },
+    });
+
     const deleteTaskDefinition = prisma.taskDefinition.delete({
       where: {
         id: taskDefinition.id,
       },
     });
 
-    await prisma.$transaction([deleteService, deleteTaskDefinition]);
+    await prisma.$transaction([
+      deleteService,
+      deleteTaskEnvironmentVariables,
+      deleteTaskDefinition,
+    ]);
 
     return {
       status: 204,
