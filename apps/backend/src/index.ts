@@ -11,6 +11,7 @@ import { contract } from "@repo/contracts";
 import { createRepository, deleteRepository, listRepositories } from "./routes/repositoryImpl";
 import { listImages, listUserImages, pullAndUploadImage } from "./routes/imageImpl";
 import { createTask, deleteTask, listTasks } from "./routes/taskImpl";
+import { createService, deleteService, listServices } from "./routes/serviceImpl";
 
 export const app: Express = express();
 
@@ -39,6 +40,11 @@ const router = s.router(contract, {
     listTasks: listTasks,
     createTask: createTask,
     deleteTask: deleteTask,
+  },
+  service: {
+    listServices: listServices,
+    createService: createService,
+    deleteService: deleteService,
   },
 });
 

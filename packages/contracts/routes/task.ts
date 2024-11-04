@@ -40,7 +40,7 @@ export const taskSchema = baseSchema.extend({
   exposedPort: z.number(),
   exposedPortProtocol: z.string(),
 
-  userImage: imageSchema,
+  userImage: imageSchema.omit({ user: true }),
   userImageId: z.string(),
 
   computingOption: computingOptionSchema,

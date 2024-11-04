@@ -1,0 +1,263 @@
+import { type AppRouteImplementation } from "@ts-rest/express";
+
+// Contracts
+import { contract } from "@repo/contracts";
+import prisma from "../libs/db";
+import {
+  createECSCluster,
+  createECSService,
+  deleteEcsService,
+  getPublicIPandPort,
+} from "../libs/aws/ecs";
+
+export const listServices: AppRouteImplementation<
+  typeof contract.service.listServices
+> = async () => {
+  try {
+    const services = await prisma.service.findMany({
+      include: {
+        cluster: {
+          include: {
+            owner: true,
+          },
+        },
+        taskDefinition: {
+          include: {
+            userImage: {
+              include: {
+                repository: true,
+              },
+            },
+            computingOption: true,
+            storageOption: true,
+            taskEnvironmentVariable: {
+              select: {
+                id: true,
+                key: true,
+                value: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!services) {
+      return {
+        status: 404,
+        body: {
+          error: "Services not found",
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      body: services,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      body: {
+        error: error as string,
+      },
+    };
+  }
+};
+
+export const createService: AppRouteImplementation<typeof contract.service.createService> = async ({
+  body,
+}) => {
+  const { serviceName, userId, taskDefinitionId, providerBase, providerWeight } = body;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    const taskDefinition = await prisma.taskDefinition.findUnique({
+      where: {
+        id: taskDefinitionId,
+      },
+    });
+
+    let notFoundError = "";
+
+    if (!user) notFoundError = "User not found";
+    if (!taskDefinition) notFoundError = "Task definition not found";
+
+    if (!user || !taskDefinition) {
+      return {
+        status: 404,
+        body: {
+          error: notFoundError,
+        },
+      };
+    }
+
+    let userCluster = await prisma.cluster.findUnique({
+      where: {
+        ownerId: user.id,
+      },
+    });
+
+    if (!userCluster) {
+      const clusterName = `${user.name.split(" ").join("_")}_cluster`;
+      const { cluster } = await createECSCluster({ clusterName });
+
+      if (!cluster) {
+        return {
+          status: 500,
+          body: {
+            error: "Error creating cluster",
+          },
+        };
+      }
+
+      userCluster = await prisma.cluster.create({
+        data: {
+          arn: cluster.clusterArn!,
+          name: cluster.clusterName!,
+          namespace: cluster.clusterName!,
+          infrastructure: "FARGATE",
+          owner: {
+            connect: {
+              id: user.id,
+            },
+          },
+        },
+      });
+    }
+
+    const { service } = await createECSService({
+      serviceName,
+      cluster: userCluster,
+      taskDefinition: taskDefinition,
+      providerBase,
+      providerWeight,
+    });
+
+    if (!service) {
+      return {
+        status: 500,
+        body: {
+          error: "Error creating service",
+        },
+      };
+    }
+
+    const ipPort = await getPublicIPandPort({
+      cluster: userCluster,
+      serviceArn: service.serviceArn!,
+    });
+
+    const createdService = await prisma.service.create({
+      data: {
+        arn: service.serviceArn!,
+        name: service.serviceName!,
+        publicIP: ipPort?.publicIP || "",
+        publicPort: ipPort?.publicPort || 0,
+        providerBase,
+        providerWeight,
+        taskDefinition: {
+          connect: {
+            id: taskDefinition.id,
+          },
+        },
+        cluster: {
+          connect: {
+            id: userCluster.id,
+          },
+        },
+      },
+      include: {
+        cluster: {
+          include: {
+            owner: true,
+          },
+        },
+        taskDefinition: {
+          include: {
+            userImage: {
+              include: {
+                repository: true,
+              },
+            },
+            computingOption: true,
+            storageOption: true,
+            taskEnvironmentVariable: {
+              select: {
+                id: true,
+                key: true,
+                value: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      status: 201,
+      body: createdService,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      body: {
+        error: error as string,
+      },
+    };
+  }
+};
+
+export const deleteService: AppRouteImplementation<typeof contract.service.deleteService> = async ({
+  params,
+}) => {
+  const { id } = params;
+
+  try {
+    const service = await prisma.service.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        cluster: true,
+      },
+    });
+
+    if (!service) {
+      return {
+        status: 404,
+        body: {
+          error: "Service not found",
+        },
+      };
+    }
+
+    await deleteEcsService({
+      cluster: service.cluster,
+      service: service,
+    });
+
+    await prisma.service.delete({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      status: 204,
+      body: null,
+    };
+  } catch (error) {
+    return {
+      status: 500,
+      body: {
+        error: error as string,
+      },
+    };
+  }
+};
