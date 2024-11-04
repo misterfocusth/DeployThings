@@ -4,45 +4,18 @@ import { FiPlus } from "react-icons/fi";
 import { CiSettings } from "react-icons/ci";
 import ServiceCard from '@/components/services/ServiceCard';
 import ServiceCost from '@/components/services/ServiceCost';
+import { api } from "@/lib/tsr-react-query";
+import { ListServiceResponse } from "node_modules/@repo/contracts/routes/service"
 
 export const Route = createLazyFileRoute('/project/$projectId/')({
   component: () => <ProjectId />
 })
 
-type Service = {
-  id: string
-  name: string
-  imageRegistryUrl: string
-  publicIP: string
-  publicPort: number
-}
-
-const servicesMock: Service[] = [
-  {
-    id: "1",
-    name: "Service 1",
-    imageRegistryUrl: "registry.com/service1",
-    publicIP: "10.0.24.39",
-    publicPort: 8080,
-  },
-  {
-    id: "2",
-    name: "Service 2",
-    imageRegistryUrl: "registry.com/service2",
-    publicIP: "10.0.25.34",
-    publicPort: 8081,
-  },
-  {
-    id: "3",
-    name: "Service 3",
-    imageRegistryUrl: "registry.com/service3",
-    publicIP: "10.0.34.12",
-    publicPort: 8082,
-  },
-];
-
 function ProjectId() {
   const { projectId } = Route.useParams();
+  const { data } = api.service.listServices.useQuery({
+    queryKey: ["services"]
+  });
   return (
     <div className="min-h-screen bg-background">
       {/* Main Content */}
@@ -69,7 +42,7 @@ function ProjectId() {
           <h2 className="text-xl font-semibold mb-4">Services</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {
-              servicesMock.map(service => (
+              data?.body.map((service: ListServiceResponse[number]) => (
                 <ServiceCard key={service.id} service={service} projectId={projectId} />
               ))
             }
@@ -78,7 +51,7 @@ function ProjectId() {
 
         {/* Usage Cost Section */}
         <section>
-            <ServiceCost services={servicesMock} />
+            <ServiceCost services={data?.body} />
         </section>
       </main>
     </div>

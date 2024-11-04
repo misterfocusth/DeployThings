@@ -31,7 +31,7 @@ export const serviceSchema = baseSchema.extend({
 type Service = z.infer<typeof serviceSchema>;
 
 const listServiceResponse = serviceSchema.array();
-type ListServiceResponse = z.infer<typeof listServiceResponse>;
+export type ListServiceResponse = z.infer<typeof listServiceResponse>;
 
 export const ServiceContract = c.router({
   listServices: {

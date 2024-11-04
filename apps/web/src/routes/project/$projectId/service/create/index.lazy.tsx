@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useState } from 'react'
+import { api } from '@/lib/tsr-react-query'
 
 export const Route = createLazyFileRoute('/project/$projectId/service/create/')({
   component: () => <NewService />
@@ -23,59 +24,59 @@ export const Route = createLazyFileRoute('/project/$projectId/service/create/')(
 
 const computeOptions = [
   {
-      id: "1",
-      name: 'General Purpose',
-      availableCPU: 1,
-      availableMemory: 2,
-      costPerHour: 3
+    id: "1",
+    name: 'General Purpose',
+    availableCPU: 1,
+    availableMemory: 2,
+    costPerHour: 3
   },
   {
-      id: "2",
-      name: 'Memory Optimized',
-      availableCPU: 2,
-      availableMemory: 8,
-      costPerHour: 6
+    id: "2",
+    name: 'Memory Optimized',
+    availableCPU: 2,
+    availableMemory: 8,
+    costPerHour: 6
   },
   {
-      id: "3",
-      name: 'CPU Optimized',
-      availableCPU: 4,
-      availableMemory: 8,
-      costPerHour: 5
+    id: "3",
+    name: 'CPU Optimized',
+    availableCPU: 4,
+    availableMemory: 8,
+    costPerHour: 5
   },
   {
-      id: "4",
-      name: 'Compute Accelerated',
-      availableCPU: 8,
-      availableMemory: 16,
-      costPerHour: 4
+    id: "4",
+    name: 'Compute Accelerated',
+    availableCPU: 8,
+    availableMemory: 16,
+    costPerHour: 4
   }
 ]
 
 const storageOptions = [
   {
-      id: "1",
-      name: 'SSD v1',
-      storageSize: 64,
-      costPerHour: 1
+    id: "1",
+    name: 'SSD v1',
+    storageSize: 64,
+    costPerHour: 1
   },
   {
-      id: "2",
-      name: 'SSD v2',
-      storageSize: 128,
-      costPerHour: 2
+    id: "2",
+    name: 'SSD v2',
+    storageSize: 128,
+    costPerHour: 2
   },
   {
-      id: "3",
-      name: 'SSD v3',
-      storageSize: 256,
-      costPerHour: 4
+    id: "3",
+    name: 'SSD v3',
+    storageSize: 256,
+    costPerHour: 4
   },
   {
-      id: "4",
-      name: 'SSD v4',
-      storageSize: 512,
-      costPerHour: 8
+    id: "4",
+    name: 'SSD v4',
+    storageSize: 512,
+    costPerHour: 8
   },
 ]
 
@@ -108,13 +109,21 @@ const formSchema = z.object({
       value: z.string(),
     })
   ).optional(),
+  providerBase: z.number().default(1),
+  providerWeight: z.number().default(1),
 })
 
-const templateRegistry = ['nginx', 'mysql', 'redis', 'mongo']
 
 export function NewService() {
   const { projectId } = Route.useParams()
-  const [cost, setCost] = useState({power: 3, storage: 1})
+  const [cost, setCost] = useState({ power: 3, storage: 1 })
+  const { data: images, isFetching, isLoading } = api.image.listImages.useQuery({ queryKey: ["images"] })
+
+  const templateRegistry = images?.body.filter(image => {
+    const templateImages = ['nginx', 'mysql', 'redis', 'mongo', 'postgres']
+    return templateImages.includes(image.repository.name)
+  })
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -127,8 +136,52 @@ export function NewService() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const { mutateAsync: createImages } = api.image.pullAndUploadImage.useMutation()
+    const { mutateAsync: createTask } = api.task.createTask.useMutation()
+    const { mutateAsync: createService } = api.service.createService.useMutation()
+
+    let imageId;
+    if (values.registry.type === 'DOCKER_REGISTRY') {
+      const { body:imageResponse } = await createImages({
+        body: {
+          imageName: values.registry.url as string,
+          userId: "1"
+        }
+      })
+      imageId = imageResponse.id
+    } else {
+      imageId = values.registry.template
+    }
+
+    const { body:taskResponse } = await createTask({
+      body: {
+        containerName: values.name,
+        taskName: values.name,
+        userId: "1",
+        os: values.computing.os,
+        computingOptionId: computeOptions.find(option => option.name === values.computing.power)?.id || "1",
+        storageOptionId: storageOptions.find(option => option.name === values.computing.storage)?.id || "1",
+        userImageId: imageId as string,
+        portMapping: {
+          containerPort: values.registry.internalPort,
+          containerPortProtocol: "http",
+          exposedPort: values.registry.externalPort,
+          exposedPortProtocol: "tcp"
+        },
+        environmentVariables: values.environment?.map(env => ({ key: env.key, value: env.value }))
+      }
+    })
+
+    await createService({
+      body: {
+        serviceName: values.name,
+        userId: "1",
+        taskDefinitionId: taskResponse.id,
+        providerBase: values.providerBase,
+        providerWeight: values.providerWeight
+      }
+    })
   }
 
   return (
@@ -137,7 +190,7 @@ export function NewService() {
       {/* Main Content */}
       <main className="container py-8 space-y-8 mx-auto">
         <div>
-          <p className="text-sm text-muted-foreground">Project { projectId }</p>
+          <p className="text-sm text-muted-foreground">Project {projectId}</p>
           <h1 className="text-3xl font-semibold">New Service</h1>
         </div>
 
@@ -201,65 +254,65 @@ export function NewService() {
                 />
                 {
                   form.watch("registry.type") === 'DOCKER_REGISTRY' && (
-                  <FormField
-                    control={form.control}
-                    name="registry.url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Image Registry URL</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />)
+                    <FormField
+                      control={form.control}
+                      name="registry.url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image Registry URL</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />)
                 }
                 {
                   form.watch("registry.type") === 'TEMPLATE_REGISTRY' && (
-                  <FormField
-                    control={form.control}
-                    name="registry.template"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Template</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            {...field}
-                            className="grid gap-4 grid-cols-2 md:grid-cols-4"
-                            name="registry.template"
-                            onValueChange={(value) => form.setValue("registry.template", value as any)}
-                          >
-                            {
-                              templateRegistry.map(option => (
-                                <div key={option}>
-                                  <RadioGroupItem value={option} id={option} className="peer sr-only" />
+                    <FormField
+                      control={form.control}
+                      name="registry.template"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Template</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              {...field}
+                              className="grid gap-4 grid-cols-2 md:grid-cols-4"
+                              name="registry.template"
+                              onValueChange={(value) => form.setValue("registry.template", value as any)}
+                            >
+                              {
+                              (isLoading || isFetching) && templateRegistry?.map(option => (
+                                <div key={option.id}>
+                                  <RadioGroupItem value={option.id} id={option.id} className="peer sr-only" />
                                   <Label
-                                    htmlFor={option}
+                                    htmlFor={option.id}
                                     className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                                   >
-                                    <span className="font-semibold">{option}</span>
+                                    <span className="font-semibold">{option.imageName}</span>
                                   </Label>
                                 </div>
                               ))
-                            }
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />)
+                              }
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />)
                 }
                 <div className="space-y-4">
                   <Label>Port Mapping</Label>
                   <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
+                    <FormField
                       control={form.control}
                       name="registry.externalPort"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input type='number' placeholder="ExternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
+                            <Input type='number' placeholder="ExternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -271,7 +324,7 @@ export function NewService() {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input type='number' placeholder="InternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
+                            <Input type='number' placeholder="InternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -309,13 +362,13 @@ export function NewService() {
                     }
                   </RadioGroup>
                 </div>
-                
+
                 <div className="space-y-4">
                   <Label>Computing Power</Label>
                   <RadioGroup
                     defaultValue="General Purpose"
                     className="grid gap-4 sm:grid-cols-4"
-                    onValueChange={(value) => {form.setValue("computing.power", value as any); setCost({power: computeOptions.find(option => option.name === value)?.costPerHour || 3, storage: cost.storage})}}
+                    onValueChange={(value) => { form.setValue("computing.power", value as any); setCost({ power: computeOptions.find(option => option.name === value)?.costPerHour || 3, storage: cost.storage }) }}
                   >
                     {
                       computeOptions.map(option => (
@@ -337,9 +390,9 @@ export function NewService() {
                 <div className="space-y-4">
                   <Label>Storage</Label>
                   <RadioGroup
-                    defaultValue="SSD v1" 
+                    defaultValue="SSD v1"
                     className="grid gap-4 sm:grid-cols-4"
-                    onValueChange={(value) => {form.setValue("computing.storage", value as any); setCost({power: cost.power, storage: storageOptions.find(option => option.name === value)?.costPerHour || 1})}}
+                    onValueChange={(value) => { form.setValue("computing.storage", value as any); setCost({ power: cost.power, storage: storageOptions.find(option => option.name === value)?.costPerHour || 1 }) }}
                   >
                     {
                       storageOptions.map(option => (
@@ -359,6 +412,34 @@ export function NewService() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Provider */}
+            <FormField
+              control={form.control}
+              name="providerBase"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Provider Base</FormLabel>
+                  <FormControl>
+                    <Input type='number' {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="providerWeight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Provider Weight</FormLabel>
+                  <FormControl>
+                    <Input type='number' {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Environment Variables */}
             <div className="space-y-4">
@@ -404,7 +485,7 @@ export function NewService() {
                     <p className="text-sm text-muted-foreground">Fixed cost per hour</p>
                   </div>
                   <div className="text-right">
-                    <div className="font-medium">{ cost.power + cost.storage } USD</div>
+                    <div className="font-medium">{cost.power + cost.storage} USD</div>
                   </div>
                 </div>
               </CardContent>

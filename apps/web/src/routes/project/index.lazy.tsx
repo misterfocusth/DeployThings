@@ -4,7 +4,6 @@ import { FiPlus } from "react-icons/fi";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectCost from "@/components/projects/ProjectCost";
 import { useState, useEffect } from "react";
-import { api } from "@/lib/tsr-react-query";
 
 export const Route = createLazyFileRoute('/project/')({
   component: () => <About />

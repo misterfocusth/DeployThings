@@ -35,6 +35,7 @@
     "@repo/contracts": "workspace:*",
     "@types/dockerode": "^3.3.31",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2"
