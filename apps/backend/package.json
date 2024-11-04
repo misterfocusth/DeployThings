@@ -5,7 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon - exec 'tsx' src/index.ts"
+    "dev": "nodemon - exec 'tsx' src/index.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:push:reset": "prisma db push --force-reset",
+    "db:push": "prisma db push"
   },
   "keywords": [],
   "author": "",
@@ -24,8 +27,16 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.683.0",
+    "@aws-sdk/client-ecr": "^3.682.0",
+    "@aws-sdk/client-ecs": "^3.683.0",
+    "@aws-sdk/types": "^3.679.0",
+    "@prisma/client": "5.18.0",
     "@repo/contracts": "workspace:*",
+    "@types/dockerode": "^3.3.31",
     "cors": "^2.8.5",
+    "dockerode": "^4.0.2",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2"
   }
 }

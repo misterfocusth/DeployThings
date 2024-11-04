@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,4 +5,213 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @unique @default(cuid())
+  email                String   @unique
+  name                 String
+  profileImageSrc      String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  dockerHubAccessToken String?
+
+  ownedProjects  Project[]        @relation("OwnedProjects")
+  projects       Project[]        @relation("ProjectMembers")
+  userImages     UserImage[]
+  repository     Repository[]
+  cluster        Cluster?
+  taskDefinition TaskDefinition[]
+}
+
+model UserImage {
+  id        String   @id @unique @default(cuid())
+  imageName String
+  imageTag  String
+  pushedAt  DateTime
+  size      Float
+  digest    String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  repositoryId String     @unique
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  TaskDefinition TaskDefinition[]
+
+  @@unique([userId, imageName, imageTag], name: "unique_image")
+}
+
+model Repository {
+  id        String     @id @unique @default(cuid())
+  name      String
+  uri       String
+  owner     User       @relation(fields: [ownerId], references: [id])
+  ownerId   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userImage UserImage?
+}
+
+model Project {
+  id          String  @id @unique @default(cuid())
+  name        String
+  description String?
+
+  owner   User   @relation(fields: [ownerId], references: [id], name: "OwnedProjects")
+  ownerId String
+
+  members User[] @relation("ProjectMembers")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id   String @id @unique @default(cuid())
+  arn  String
+  name String
+
+  publicIP   String
+  publicPort Int
+
+  providerBase   Int @default(1)
+  providerWeight Int @default(1)
+
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+
+  cluster   Cluster @relation(fields: [clusterId], references: [id])
+  clusterId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([publicIP, publicPort], name: "unique_public_ip_port")
+  @@index([name])
+}
+
+model TaskDefinition {
+  id       String @id @unique @default(cuid())
+  name     String
+  arn      String
+  revision Int
+
+  taskRoleArn      String?
+  executionRoleArn String?
+
+  launchType      InfrastructureType @default(FARGATE)
+  operatingSystem OperatingSystem
+
+  containerName String
+
+  containerPort         Int
+  containerPortProtocol ContainerPortProtocol @default(TCP)
+  exposedPort           Int
+  exposedPortProtocol   ExposePortProtocol    @default(HTTP)
+
+  userImage   UserImage @relation(fields: [userImageId], references: [id])
+  userImageId String
+
+  computingOption   ComputingOption @relation(fields: [computingOptionId], references: [id])
+  computingOptionId String
+
+  storageOption   StorageOption @relation(fields: [storageOptionId], references: [id])
+  storageOptionId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  taskEnvironmentVariable TaskEnvironmentVariable[]
+  taskCredential          TaskCredential[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Service   Service[]
+}
+
+model TaskEnvironmentVariable {
+  id               String         @id @unique @default(cuid())
+  key              String
+  value            String
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([taskDefinitionId, key], name: "unique_task_key")
+}
+
+model TaskCredential {
+  id               String         @id @unique @default(cuid())
+  key              String
+  value            String
+  taskDefinition   TaskDefinition @relation(fields: [taskDefinitionId], references: [id])
+  taskDefinitionId String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([taskDefinitionId, key], name: "unique_task_key")
+}
+
+model ComputingOption {
+  id              String           @id @unique @default(cuid())
+  name            String
+  availableCPU    Float // Store as number of cores
+  availableMemory Float // Store as GB of memory
+  costPerHour     Float // Store as Baht per hour
+  taskDefinitions TaskDefinition[]
+}
+
+model StorageOption {
+  id              String           @id @unique @default(cuid())
+  name            String
+  storageSize     Float // Store as GB
+  costPerHour     Float // Store as Baht per hour
+  taskDefinitions TaskDefinition[]
+}
+
+model Cluster {
+  id             String             @id @unique @default(cuid())
+  arn            String
+  name           String
+  namespace      String
+  infrastructure InfrastructureType
+
+  ownerId String @unique
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Service   Service[]
+}
+
+enum InfrastructureType {
+  FARGATE
+  EC2
+  EXTERNAL
+}
+
+enum OperatingSystem {
+  LINUX_X86_64
+  LINUX_ARM64
+  WINDOWS_SERVER_2019_CORE
+  WINDOWS_SERVER_2019_FULL
+  WINDOWS_SERVER_2022_CORE
+  WINDOWS_SERVER_2022_FULL
+}
+
+enum ContainerPortProtocol {
+  TCP
+  UDP
+}
+
+enum ExposePortProtocol {
+  HTTP
+  HTTP2
+  GRPC
+  NONE
 }

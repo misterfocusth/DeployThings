@@ -1,7 +1,7 @@
 // contract.ts
 
-import { initContract } from "@ts-rest/core";
-import { string, z } from "zod";
+import {initContract} from "@ts-rest/core";
+import {z} from "zod";
 
 const c = initContract();
 
@@ -10,6 +10,9 @@ export const PostSchema = z.object({
   title: z.string(),
   body: z.string(),
 });
+
+const getPostResponse = PostSchema.array()
+type GetPostResponse = z.infer<typeof getPostResponse>
 
 export const PostContract = c.router({
   createPost: {
@@ -28,7 +31,7 @@ export const PostContract = c.router({
     method: "GET",
     path: `/posts/:id`,
     responses: {
-      200: string(),
+      200: c.type<GetPostResponse>()
     },
     summary: "Get a post by id",
   },
