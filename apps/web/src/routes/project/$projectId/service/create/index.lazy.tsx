@@ -91,7 +91,9 @@ const osOptions = [
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   registry: z.object({
-    url: z.string(),
+    type: z.enum(['DOCKER_REGISTRY', 'TEMPLATE_REGISTRY']),
+    template: z.enum(['nginx', 'mysql', 'redis', 'mongo']).optional(),
+    url: z.string().optional(),
     internalPort: z.number().int().min(1, "Port is required"),
     externalPort: z.number().int().min(1, "Port is required"),
   }),
@@ -107,6 +109,8 @@ const formSchema = z.object({
     })
   ).optional(),
 })
+
+const templateRegistry = ['nginx', 'mysql', 'redis', 'mongo']
 
 export function NewService() {
   const { projectId } = Route.useParams()
@@ -160,27 +164,102 @@ export function NewService() {
                 <h3 className="font-bold text-lg">Container</h3>
                 <FormField
                   control={form.control}
-                  name="registry.url"
+                  name="registry.type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image Registry URL</FormLabel>
+                      <FormLabel>Registry Type</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <RadioGroup
+                          {...field}
+                          className="grid gap-4 sm:grid-cols-2"
+                          name="registry.type"
+                          onValueChange={(value) => form.setValue("registry.type", value as any)}
+                        >
+                          <div>
+                            <RadioGroupItem value="DOCKER_REGISTRY" id="DOCKER_REGISTRY" className="peer sr-only" />
+                            <Label
+                              htmlFor="DOCKER_REGISTRY"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                            >
+                              <span className="font-semibold">Docker Registry</span>
+                            </Label>
+                          </div>
+                          <div>
+                            <RadioGroupItem value="TEMPLATE_REGISTRY" id="TEMPLATE_REGISTRY" className="peer sr-only" />
+                            <Label
+                              htmlFor="TEMPLATE_REGISTRY"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                            >
+                              <span className="font-semibold">Template Registry</span>
+                            </Label>
+                          </div>
+                        </RadioGroup>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                {
+                  form.watch("registry.type") === 'DOCKER_REGISTRY' && (
+                  <FormField
+                    control={form.control}
+                    name="registry.url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Image Registry URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />)
+                }
+                {
+                  form.watch("registry.type") === 'TEMPLATE_REGISTRY' && (
+                  <FormField
+                    control={form.control}
+                    name="registry.template"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Template</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            {...field}
+                            className="grid gap-4 grid-cols-2 md:grid-cols-4"
+                            name="registry.template"
+                            onValueChange={(value) => form.setValue("registry.template", value as any)}
+                          >
+                            {
+                              templateRegistry.map(option => (
+                                <div key={option}>
+                                  <RadioGroupItem value={option} id={option} className="peer sr-only" />
+                                  <Label
+                                    htmlFor={option}
+                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                  >
+                                    <span className="font-semibold">{option}</span>
+                                  </Label>
+                                </div>
+                              ))
+                            }
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />)
+                }
                 <div className="space-y-4">
                   <Label>Port Mapping</Label>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
+                  <FormField
                       control={form.control}
-                      name="registry.internalPort"
+                      name="registry.externalPort"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input type='number' placeholder="InternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
+                            <Input type='number' placeholder="ExternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -188,11 +267,11 @@ export function NewService() {
                     />
                     <FormField
                       control={form.control}
-                      name="registry.externalPort"
+                      name="registry.internalPort"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input type='number' placeholder="ExternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
+                            <Input type='number' placeholder="InternalPort" {...field} onChange={(e) => field.onChange(Number(e.target.value))}/>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -256,7 +335,7 @@ export function NewService() {
                 </div>
 
                 <div className="space-y-4">
-                  <Label>Storage (Optional)</Label>
+                  <Label>Storage</Label>
                   <RadioGroup
                     defaultValue="SSD v1" 
                     className="grid gap-4 sm:grid-cols-4"
