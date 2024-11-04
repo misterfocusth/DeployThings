@@ -7,7 +7,7 @@ import {
   createECSCluster,
   createECSService,
   deleteEcsService,
-  getPublicIPandPort,
+  getPublicIPAddress,
 } from "../libs/aws/ecs";
 
 export const listServices: AppRouteImplementation<
@@ -131,6 +131,22 @@ export const createService: AppRouteImplementation<typeof contract.service.creat
       });
     }
 
+    const existingService = await prisma.service.findFirst({
+      where: {
+        name: serviceName,
+        clusterId: userCluster.id,
+      },
+    });
+
+    if (existingService) {
+      return {
+        status: 400,
+        body: {
+          error: "Service already exists",
+        },
+      };
+    }
+
     const { service } = await createECSService({
       serviceName,
       cluster: userCluster,
@@ -148,17 +164,20 @@ export const createService: AppRouteImplementation<typeof contract.service.creat
       };
     }
 
-    const ipPort = await getPublicIPandPort({
-      cluster: userCluster,
-      serviceArn: service.serviceArn!,
+    const clusterArn = userCluster.arn;
+    const serviceArn = service.serviceArn!;
+
+    const publicIP = await getPublicIPAddress({
+      clusterArn,
+      serviceArn,
     });
 
     const createdService = await prisma.service.create({
       data: {
         arn: service.serviceArn!,
         name: service.serviceName!,
-        publicIP: ipPort?.publicIP || "",
-        publicPort: ipPort?.publicPort || 0,
+        publicIP: publicIP || "",
+        publicPort: taskDefinition.exposedPort,
         providerBase,
         providerWeight,
         taskDefinition: {
@@ -204,6 +223,7 @@ export const createService: AppRouteImplementation<typeof contract.service.creat
       body: createdService,
     };
   } catch (error) {
+    console.log("Error creating service", error);
     return {
       status: 500,
       body: {
