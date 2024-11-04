@@ -5,134 +5,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { FileText, Server, Variable, Key } from 'lucide-react'
+import { FileText, Server, Variable } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { api } from '@/lib/tsr-react-query'
+import { ListServiceResponse } from 'node_modules/@repo/contracts/routes/service'
+import { useNavigate } from '@tanstack/react-router'
 
 export const Route = createLazyFileRoute('/project/$projectId/service/$serviceId')({
   component: () => <TaskManagementDashboardComponent />
 })
 
-interface TaskDefinition {
-  id: string
-  name: string
-  arn: string
-  revision: number
-  taskRoleArn: string
-  executionRoleArn: string
-  launchType: 'EC2' | 'FARGATE' | 'EXTERNAL'
-  operatingSystem: 'LINUX' | 'WINDOWS'
-  containerName: string
-  containerPort: number
-  containerPortProtocol: 'tcp' | 'udp'
-  exposedPort: number
-  exposedPortProtocol: 'tcp' | 'udp'
-  createdAt: string
-  updatedAt: string
-}
-
-interface Service {
-  id: string
-  arn: string
-  name: string
-  publicIP: string
-  publicPort: number
-  providerBase: number
-  providerWeight: number
-  createdAt: string
-  updatedAt: string
-}
-
-interface TaskEnvironmentVariable {
-  id: string
-  key: string
-  value: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface TaskCredential {
-  id: string
-  key: string
-  value: string
-  createdAt: string
-  updatedAt: string
-}
-
 export function TaskManagementDashboardComponent() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("task-definition")
-  const taskDefinition:TaskDefinition = {
-    id: "task-def-1",
-    name: "web-app",
-    arn: "arn:aws:ecs:us-west-2:123456789012:task-definition/web-app:1",
-    revision: 1,
-    taskRoleArn: "arn:aws:iam::123456789012:role/ecsTaskRole",
-    executionRoleArn: "arn:aws:iam::123456789012:role/ecsTaskExecutionRole",
-    launchType: "FARGATE",
-    operatingSystem: "LINUX",
-    containerName: "web",
-    containerPort: 80,
-    containerPortProtocol: "tcp",
-    exposedPort: 8080,
-    exposedPortProtocol: "tcp",
-    createdAt: "2023-05-01T12:00:00Z",
-    updatedAt: "2023-05-02T14:30:00Z"
-  }
-  const service:Service = {
-    id: "svc-1",
-    arn: "arn:aws:ecs:us-west-2:123456789012:service/web-app-service",
-    name: "web-app-service",
-    publicIP: "203.0.113.0",
-    publicPort: 80,
-    providerBase: 100,
-    providerWeight: 1,
-    createdAt: "2023-05-01T12:30:00Z",
-    updatedAt: "2023-05-02T15:00:00Z"
-  }
-  const environmentVariables: TaskEnvironmentVariable[] = [
-    {
-      id: "env-1",
-      key: "NODE_ENV",
-      value: "production",
-      createdAt: "2023-05-01T12:15:00Z",
-      updatedAt: "2023-05-01T12:15:00Z"
-    },
-    {
-      id: "env-2",
-      key: "API_URL",
-      value: "https://api.example.com",
-      createdAt: "2023-05-01T12:16:00Z",
-      updatedAt: "2023-05-01T12:16:00Z"
-    }
-  ]
+  const { projectId, serviceId } = Route.useParams()
+  const { data } = api.service.listServices.useQuery({
+    queryKey: ["services"]
+  })
+  const { mutateAsync } = api.service.deleteService.useMutation()
+  const service = data?.body.find((service: ListServiceResponse[number]) => service.id === serviceId)
 
-  const credentials: TaskCredential[] = [
-    {
-      id: "cred-1",
-      key: "DB_PASSWORD",
-      value: "********",
-      createdAt: "2023-05-01T12:20:00Z",
-      updatedAt: "2023-05-01T12:20:00Z"
-    },
-    {
-      id: "cred-2",
-      key: "API_KEY",
-      value: "********",
-      createdAt: "2023-05-01T12:21:00Z",
-      updatedAt: "2023-05-01T12:21:00Z"
-    }
-  ]
+  const deleteService = () => {
+    mutateAsync({
+      params: {
+        id: serviceId
+      },
+      body: {}
+    }).then(() => {
+      navigate({ to: '/project/$projectId', params: { projectId: projectId } })
+    })
+  }
+
+  if (!service) return null
 
   return (
     <Card className="w-full max-w-4xl mx-auto mt-10 mb-10">
       <CardHeader>
         <div className='flex justify-between w-full'>
           <CardTitle className="text-2xl font-bold">Service: { service.name }</CardTitle>
-          <Button variant={'destructive'}>Delete Service</Button>
+          <Button variant={'destructive'} onClick={deleteService}>Delete Service</Button>
         </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="task-definition" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Task Definition</span>
@@ -145,28 +61,28 @@ export function TaskManagementDashboardComponent() {
               <Variable className="w-4 h-4" />
               <span className="hidden sm:inline">Environment Variables</span>
             </TabsTrigger>
-            <TabsTrigger value="credentials" className="flex items-center gap-2">
+            {/* <TabsTrigger value="credentials" className="flex items-center gap-2">
               <Key className="w-4 h-4" />
               <span className="hidden sm:inline">Credentials</span>
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
           <TabsContent value="task-definition">
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
               <h3 className="text-lg font-semibold mb-2">Task Definition</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InfoItem label="ID" value={taskDefinition.id} />
-                <InfoItem label="Name" value={taskDefinition.name} />
-                <InfoItem label="ARN" value={taskDefinition.arn} />
-                <InfoItem label="Revision" value={taskDefinition.revision.toString()} />
-                <InfoItem label="Task Role ARN" value={taskDefinition.taskRoleArn} />
-                <InfoItem label="Execution Role ARN" value={taskDefinition.executionRoleArn} />
-                <InfoItem label="Launch Type" value={taskDefinition.launchType} />
-                <InfoItem label="Operating System" value={taskDefinition.operatingSystem} />
-                <InfoItem label="Container Name" value={taskDefinition.containerName} />
-                <InfoItem label="Container Port" value={`${taskDefinition.containerPort} (${taskDefinition.containerPortProtocol})`} />
-                <InfoItem label="Exposed Port" value={`${taskDefinition.exposedPort} (${taskDefinition.exposedPortProtocol})`} />
-                <InfoItem label="Created At" value={format(new Date(taskDefinition.createdAt), "PPpp")} />
-                <InfoItem label="Updated At" value={format(new Date(taskDefinition.updatedAt), "PPpp")} />
+                <InfoItem label="ID" value={service.taskDefinition.id} />
+                <InfoItem label="Name" value={service.taskDefinition.name} />
+                <InfoItem label="ARN" value={service.taskDefinition.arn} />
+                <InfoItem label="Revision" value={service.taskDefinition.revision.toString()} />
+                <InfoItem label="Task Role ARN" value={service.taskDefinition.taskRoleArn || '-'} />
+                <InfoItem label="Execution Role ARN" value={service.taskDefinition.executionRoleArn || '-'} />
+                <InfoItem label="Launch Type" value={service.taskDefinition.launchType} />
+                <InfoItem label="Operating System" value={service.taskDefinition.operatingSystem} />
+                <InfoItem label="Container Name" value={service.taskDefinition.containerName} />
+                <InfoItem label="Container Port" value={`${service.taskDefinition.containerPort} (${service.taskDefinition.containerPortProtocol})`} />
+                <InfoItem label="Exposed Port" value={`${service.taskDefinition.exposedPort} (${service.taskDefinition.exposedPortProtocol})`} />
+                <InfoItem label="Created At" value={format(new Date(service.taskDefinition.createdAt), "PPpp")} />
+                <InfoItem label="Updated At" value={format(new Date(service.taskDefinition.updatedAt), "PPpp")} />
               </div>
             </ScrollArea>
           </TabsContent>
@@ -189,24 +105,22 @@ export function TaskManagementDashboardComponent() {
           <TabsContent value="env-vars">
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
               <h3 className="text-lg font-semibold mb-2">Environment Variables</h3>
-              {environmentVariables.map((envVar, index) => (
+              {service.taskDefinition.taskEnvironmentVariable.map((envVar, index) => (
                 <div key={envVar.id} className="mb-4">
                   <h4 className="text-md font-semibold">Variable {index + 1}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <InfoItem label="Key" value={envVar.key} />
                     <InfoItem label="Value" value={envVar.value} />
-                    <InfoItem label="Created At" value={format(new Date(envVar.createdAt), "PPpp")} />
-                    <InfoItem label="Updated At" value={format(new Date(envVar.updatedAt), "PPpp")} />
                   </div>
-                  {index < environmentVariables.length - 1 && <Separator className="my-2" />}
+                  {index < service.taskDefinition.taskEnvironmentVariable.length - 1 && <Separator className="my-2" />}
                 </div>
               ))}
             </ScrollArea>
           </TabsContent>
-          <TabsContent value="credentials">
+          {/* <TabsContent value="credentials">
             <ScrollArea className="h-[400px] w-full rounded-md border p-4">
               <h3 className="text-lg font-semibold mb-2">Credentials</h3>
-              {credentials.map((credential, index) => (
+              {service.taskDefinition..map((credential, index) => (
                 <div key={credential.id} className="mb-4">
                   <h4 className="text-md font-semibold">Credential {index + 1}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -215,11 +129,11 @@ export function TaskManagementDashboardComponent() {
                     <InfoItem label="Created At" value={format(new Date(credential.createdAt), "PPpp")} />
                     <InfoItem label="Updated At" value={format(new Date(credential.updatedAt), "PPpp")} />
                   </div>
-                  {index < credentials.length - 1 && <Separator className="my-2" />}
+                  {index < service.taskDefinition..length - 1 && <Separator className="my-2" />}
                 </div>
               ))}
             </ScrollArea>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </CardContent>
     </Card>

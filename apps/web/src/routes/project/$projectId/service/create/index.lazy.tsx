@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useState } from 'react'
 import { api } from '@/lib/tsr-react-query'
+import { useNavigate } from '@tanstack/react-router'
 
 export const Route = createLazyFileRoute('/project/$projectId/service/create/')({
   component: () => <NewService />
@@ -93,7 +94,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
   registry: z.object({
     type: z.enum(['DOCKER_REGISTRY', 'TEMPLATE_REGISTRY']),
-    template: z.enum(['nginx', 'mysql', 'redis', 'mongo']).optional(),
+    template: z.string().optional(),
     url: z.string().optional(),
     internalPort: z.number().int().min(1, "Port is required"),
     externalPort: z.number().int().min(1, "Port is required"),
@@ -117,11 +118,16 @@ const formSchema = z.object({
 export function NewService() {
   const { projectId } = Route.useParams()
   const [cost, setCost] = useState({ power: 3, storage: 1 })
+  const [creating, setCreating] = useState(false)
   const { data: images, isFetching, isLoading } = api.image.listImages.useQuery({ queryKey: ["images"] })
+  const { mutateAsync: createImages } = api.image.pullAndUploadImage.useMutation()
+  const { mutateAsync: createTask } = api.task.createTask.useMutation()
+  const { mutateAsync: createService } = api.service.createService.useMutation()
+  const navigate = useNavigate()
 
   const templateRegistry = images?.body.filter(image => {
     const templateImages = ['nginx', 'mysql', 'redis', 'mongo', 'postgres']
-    return templateImages.includes(image.repository.name)
+    return templateImages.includes(image.imageName)
   })
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -132,18 +138,14 @@ export function NewService() {
         power: "General Purpose",
         storage: "SSD v1",
       },
-      environment: [{ key: "", value: "" }],
     },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { mutateAsync: createImages } = api.image.pullAndUploadImage.useMutation()
-    const { mutateAsync: createTask } = api.task.createTask.useMutation()
-    const { mutateAsync: createService } = api.service.createService.useMutation()
-
+    setCreating(true)
     let imageId;
     if (values.registry.type === 'DOCKER_REGISTRY') {
-      const { body:imageResponse } = await createImages({
+      const { body: imageResponse } = await createImages({
         body: {
           imageName: values.registry.url as string,
           userId: "1"
@@ -154,7 +156,7 @@ export function NewService() {
       imageId = values.registry.template
     }
 
-    const { body:taskResponse } = await createTask({
+    const { body: taskResponse } = await createTask({
       body: {
         containerName: values.name,
         taskName: values.name,
@@ -169,7 +171,7 @@ export function NewService() {
           exposedPort: values.registry.externalPort,
           exposedPortProtocol: "tcp"
         },
-        environmentVariables: values.environment?.map(env => ({ key: env.key, value: env.value }))
+        environmentVariables: values.environment ? values.environment.map(env => ({ key: env.key, value: env.value })) : undefined
       }
     })
 
@@ -182,6 +184,8 @@ export function NewService() {
         providerWeight: values.providerWeight
       }
     })
+
+    navigate({ to: `/project/$projectId`, params: { projectId } })
   }
 
   return (
@@ -284,17 +288,17 @@ export function NewService() {
                               onValueChange={(value) => form.setValue("registry.template", value as any)}
                             >
                               {
-                              (isLoading || isFetching) && templateRegistry?.map(option => (
-                                <div key={option.id}>
-                                  <RadioGroupItem value={option.id} id={option.id} className="peer sr-only" />
-                                  <Label
-                                    htmlFor={option.id}
-                                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                                  >
-                                    <span className="font-semibold">{option.imageName}</span>
-                                  </Label>
-                                </div>
-                              ))
+                                !(isLoading || isFetching) && templateRegistry?.map(option => (
+                                  <div key={option.id}>
+                                    <RadioGroupItem value={option.id} id={option.id} className="peer sr-only" />
+                                    <Label
+                                      htmlFor={option.id}
+                                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                                    >
+                                      <span className="font-semibold">{option.imageName}</span>
+                                    </Label>
+                                  </div>
+                                ))
                               }
                             </RadioGroup>
                           </FormControl>
@@ -491,7 +495,7 @@ export function NewService() {
               </CardContent>
             </Card>
 
-            <Button type="submit" className="w-full">Create</Button>
+            <Button type="submit" className="w-full" disabled={creating}>Create</Button>
           </form>
         </Form>
       </main>
