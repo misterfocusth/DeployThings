@@ -7,6 +7,7 @@ import {
   createECSCluster,
   createECSService,
   deleteEcsService,
+  deleteECSTaskDefinition,
   getPublicIPAddress,
 } from "../libs/aws/ecs";
 
@@ -248,11 +249,17 @@ export const deleteService: AppRouteImplementation<typeof contract.service.delet
       },
     });
 
-    if (!service) {
+    const taskDefinition = await prisma.taskDefinition.findUnique({
+      where: {
+        id: service?.taskDefinitionId,
+      },
+    });
+
+    if (!service || !taskDefinition) {
       return {
         status: 404,
         body: {
-          error: "Service not found",
+          error: "Service or Task Definition not found",
         },
       };
     }
@@ -262,11 +269,31 @@ export const deleteService: AppRouteImplementation<typeof contract.service.delet
       service: service,
     });
 
-    await prisma.service.delete({
+    await deleteECSTaskDefinition(taskDefinition.name);
+
+    const deleteService = prisma.service.delete({
       where: {
-        id,
+        id: service.id,
       },
     });
+
+    const deleteTaskEnvironmentVariables = prisma.taskEnvironmentVariable.deleteMany({
+      where: {
+        taskDefinitionId: taskDefinition.id,
+      },
+    });
+
+    const deleteTaskDefinition = prisma.taskDefinition.delete({
+      where: {
+        id: taskDefinition.id,
+      },
+    });
+
+    await prisma.$transaction([
+      deleteService,
+      deleteTaskEnvironmentVariables,
+      deleteTaskDefinition,
+    ]);
 
     return {
       status: 204,

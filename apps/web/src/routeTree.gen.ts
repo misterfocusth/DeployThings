@@ -16,20 +16,56 @@ import { Route as rootRoute } from './routes/__root'
 
 // Create Virtual Routes
 
-const AboutLazyImport = createFileRoute('/about')()
 const IndexLazyImport = createFileRoute('/')()
+const ProjectIndexLazyImport = createFileRoute('/project/')()
+const ProjectProjectIdIndexLazyImport = createFileRoute(
+  '/project/$projectId/',
+)()
+const ProjectProjectIdServiceServiceIdLazyImport = createFileRoute(
+  '/project/$projectId/service/$serviceId',
+)()
+const ProjectProjectIdServiceCreateIndexLazyImport = createFileRoute(
+  '/project/$projectId/service/create/',
+)()
 
 // Create/Update Routes
-
-const AboutLazyRoute = AboutLazyImport.update({
-  path: '/about',
-  getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
 
 const IndexLazyRoute = IndexLazyImport.update({
   path: '/',
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+
+const ProjectIndexLazyRoute = ProjectIndexLazyImport.update({
+  path: '/project/',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/project/index.lazy').then((d) => d.Route))
+
+const ProjectProjectIdIndexLazyRoute = ProjectProjectIdIndexLazyImport.update({
+  path: '/project/$projectId/',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() =>
+  import('./routes/project/$projectId/index.lazy').then((d) => d.Route),
+)
+
+const ProjectProjectIdServiceServiceIdLazyRoute =
+  ProjectProjectIdServiceServiceIdLazyImport.update({
+    path: '/project/$projectId/service/$serviceId',
+    getParentRoute: () => rootRoute,
+  } as any).lazy(() =>
+    import('./routes/project/$projectId/service/$serviceId.lazy').then(
+      (d) => d.Route,
+    ),
+  )
+
+const ProjectProjectIdServiceCreateIndexLazyRoute =
+  ProjectProjectIdServiceCreateIndexLazyImport.update({
+    path: '/project/$projectId/service/create/',
+    getParentRoute: () => rootRoute,
+  } as any).lazy(() =>
+    import('./routes/project/$projectId/service/create/index.lazy').then(
+      (d) => d.Route,
+    ),
+  )
 
 // Populate the FileRoutesByPath interface
 
@@ -42,11 +78,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutLazyImport
+    '/project/': {
+      id: '/project/'
+      path: '/project'
+      fullPath: '/project'
+      preLoaderRoute: typeof ProjectIndexLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/project/$projectId/': {
+      id: '/project/$projectId/'
+      path: '/project/$projectId'
+      fullPath: '/project/$projectId'
+      preLoaderRoute: typeof ProjectProjectIdIndexLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/project/$projectId/service/$serviceId': {
+      id: '/project/$projectId/service/$serviceId'
+      path: '/project/$projectId/service/$serviceId'
+      fullPath: '/project/$projectId/service/$serviceId'
+      preLoaderRoute: typeof ProjectProjectIdServiceServiceIdLazyImport
+      parentRoute: typeof rootRoute
+    }
+    '/project/$projectId/service/create/': {
+      id: '/project/$projectId/service/create/'
+      path: '/project/$projectId/service/create'
+      fullPath: '/project/$projectId/service/create'
+      preLoaderRoute: typeof ProjectProjectIdServiceCreateIndexLazyImport
       parentRoute: typeof rootRoute
     }
   }
@@ -56,7 +113,10 @@ declare module '@tanstack/react-router' {
 
 export const routeTree = rootRoute.addChildren({
   IndexLazyRoute,
-  AboutLazyRoute,
+  ProjectIndexLazyRoute,
+  ProjectProjectIdIndexLazyRoute,
+  ProjectProjectIdServiceServiceIdLazyRoute,
+  ProjectProjectIdServiceCreateIndexLazyRoute,
 })
 
 /* prettier-ignore-end */
@@ -68,14 +128,26 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/about"
+        "/project/",
+        "/project/$projectId/",
+        "/project/$projectId/service/$serviceId",
+        "/project/$projectId/service/create/"
       ]
     },
     "/": {
       "filePath": "index.lazy.tsx"
     },
-    "/about": {
-      "filePath": "about.lazy.tsx"
+    "/project/": {
+      "filePath": "project/index.lazy.tsx"
+    },
+    "/project/$projectId/": {
+      "filePath": "project/$projectId/index.lazy.tsx"
+    },
+    "/project/$projectId/service/$serviceId": {
+      "filePath": "project/$projectId/service/$serviceId.lazy.tsx"
+    },
+    "/project/$projectId/service/create/": {
+      "filePath": "project/$projectId/service/create/index.lazy.tsx"
     }
   }
 }
